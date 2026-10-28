@@ -1,15 +1,15 @@
 import mongoose from "mongoose";
 
-const SharedTask = mongoose.Schema({
+const SharedTask = new mongoose.Schema({
     task_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'Task',
         required: true
     },
     collaborator: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required
+        required: true
     }
 }, { timestamps: true })
 

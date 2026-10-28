@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
     name:{
@@ -19,19 +19,16 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
         trim: true,
-        minlength: 8,
-        maxlength: 20
+        minlength: 8
     },
     role: {
         type: String,
         lowercase: true,
-        sparse: true,
         enum: ['user', 'admin'],
         default: 'user'
     },
-    signFrom:{
+    authProvider:{
         type: String,
-        unique: true,
         enum: ['google', 'local'],
         default: 'local'
     },

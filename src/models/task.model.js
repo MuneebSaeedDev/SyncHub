@@ -1,5 +1,4 @@
-import mongoose from "mongoose";
-import { moduleRunnerTransform } from "vite";
+const mongoose = require("mongoose");
 
 const Task = new mongoose.Schema({
     owner_id: {
@@ -10,12 +9,18 @@ const Task = new mongoose.Schema({
     title: {
         type: String,
         required: true,
-        minlength: 16,
+        minlength: 8,
         maxlength: 100
+    },
+    description: {
+        type: String,
+        trim: true,
+        default: "",
+        minlength: 16,
+        maxlength: 1000,
     },
     priority: {
         type: String,
-        lowercase: true,
         enum: ['low', 'medium', 'high'],
         default: 'low'
     },
