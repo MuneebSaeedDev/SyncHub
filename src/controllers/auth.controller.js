@@ -15,10 +15,8 @@ const generateToken = (id) => {
 
 const sendTokenResponse = (user, statusCode, res) => {
     const token = generateToken(user._id);
-
-    const expiresAt = new Date(
-        Date.now() + 1 * 24 * 60 * 60 * 1000
-    );
+    const { exp } = jwt.decode(token); // cookie expiry always matches the JWT
+    const expiresAt = new Date(exp * 1000)
 
     return res
         .status(statusCode)
@@ -77,17 +75,21 @@ const signUp = async (req, res) => {
             success: true,
             message: "User registered successfully",
             user: {
-                _id: user._id,
+                id: user._id,
                 name: user.name,
                 email: user.email,
                 role: user.role
             }
         });
     } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        })
+        if (error.code === 11000) {   // unique index on email
+            return res.status(409).json({
+                success: false,
+                message: "This email is already registered"
+            });
+        }
+        console.error("Signup error:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
     }
 }
 
@@ -102,25 +104,22 @@ const signIn = async (req, res) => {
         }
 
         const normalizedEmail = email.toLowerCase().trim();
-        const user = await User.findOne({ email: normalizedEmail });
+        const user = await User.findOne({ email: normalizedEmail }).select("+password");
         if (!user) {
             return res.status(401).json({
                 success: false,
                 message: "Invalid email or password",
             });
         }
-        if (user.authProvider === "google" && !user.password) {
+        const isMatch = await bcrypt.compare(password, user?.password)
+        if (user && !user.password && user.authProvider === "google") {
             return res.status(401).json({
                 success: false,
-                message: "This account uses Google Sign-In. Please continue with Google.",
+                message: "This account uses Google Sign-In. Please continue with Google."
             });
         }
 
-        const isPasswordMatch = await bcrypt.compare(
-            password,
-            user.password
-        );
-        if (!isPasswordMatch) {
+        if (!user || !user.password || !isMatch) {
             return res.status(401).json({
                 success: false,
                 message: "Invalid email or password"
@@ -166,7 +165,9 @@ const getUserById = async (req, res) => {
         }
 
         // Find user by ID
-        const user = await User.findById(id);
+        const user = await User.findById(id)
+        .select("name email createdAt")
+        .lean();
 
         // Check if user exists
         if (!user) {

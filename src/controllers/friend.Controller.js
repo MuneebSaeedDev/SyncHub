@@ -71,9 +71,12 @@ const sendFriendRequest = async (req, res) => {
 const getFriendRequest = async (req, res) => {
     try {
         const requests = await friendRequest.find({
-            recipient: req.user._id,
-            status: "pending"
-        }).populate("recipient", "name email");;
+                recipient: req.user._id,
+                status: "pending"
+            })
+            .populate("requester", "name email")
+            .sort({ createdAt: -1 })
+            .lean();
 
         return res.status(200).json({
             success: true,
@@ -81,6 +84,7 @@ const getFriendRequest = async (req, res) => {
             requests
         });
     } catch (error) {
+        console.error("getFriendRequest error:", error);
         return res.status(500).json({
             success: false,
             message: "Failed to fetch friend requests"

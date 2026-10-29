@@ -1,22 +1,29 @@
+require("dotenv").config();
 const express = require("express");
-const dotenv = require("dotenv");
-const connectDB = require("./config/db");
-const cors = require('cors');
+const cors = require("cors");
+const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
+const connectDB = require("./config/db");
+
 const authRouter = require("./routes/auth.route");
 const taskRouter = require("./routes/task.Route");
 const friendRequestRoutes = require("./routes/friend.Route");
 
+const app = express();
 
 dotenv.config();
 
-const app = express();
-
+app.use(helmet());
 
 app.use(cors({
-    origin: "http://localhost:5173" || "http://localhost:5174",
+    origin: [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:5174"
+    ],
     credentials: true
-}))
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

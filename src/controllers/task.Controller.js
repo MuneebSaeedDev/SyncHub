@@ -122,17 +122,11 @@ const updatetask = async (req, res) => {
 // delete — edit the specific task
 const deleteTask = async (req, res)=> {
     try {
-        const { id } = req.params.id;
-        const task = Task.findOneAndDelete({
+        const { id } = req.params;
+        const task = await Task.findOneAndDelete({
             _id: req.params.id,
-            user: req.user._id
+            owner_id: req.user._id
         })
-        if (!task) {
-            return res.status(404).json({
-                success: false,
-                message: "Task not found or you do not own this task",
-            });
-        }
         return res.status(200).json({
             success: true,
             message: "Task deleted successfully",
