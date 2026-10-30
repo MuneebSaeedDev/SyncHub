@@ -8,7 +8,7 @@ const createTask = async(req, res)=> {
             return res.status(422).json({
                 success: false,
                 message: "Title and due date are required"
-            })   
+            })
         }
 
         const task = await Task.create({
@@ -69,6 +69,7 @@ const getOneTask = async (req, res) => {
             userTask
         });
     } catch (error) {
+        if (error.name === "CastError") return res.status(400).json({ success: false, message: "Invalid task ID" })
         return res.status(500).json({
             success: false,
             message: "Internal server error"
@@ -120,21 +121,35 @@ const updatetask = async (req, res) => {
 }
 
 // delete — edit the specific task
-const deleteTask = async (req, res)=> {
+const deleteTask = async (req, res) => {
     try {
         const { id } = req.params;
         const task = await Task.findOneAndDelete({
-            _id: req.params.id,
+            _id: id,
             owner_id: req.user._id
-        })
+        });
+        if (!task) {
+            return res.status(404).json({
+                success: false,
+                message: "Task not found"
+            });
+        }
         return res.status(200).json({
             success: true,
-            message: "Task deleted successfully",
+            message: "Task deleted successfully"
         });
     } catch (error) {
-        return res.status(400).json({
+        console.error("Delete task error:", error);
+
+        if (error.name === "CastError") {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid task ID"
+            });
+        }
+        return res.status(500).json({
             success: false,
-            message: "Invalid task ID" || error.message
+            message: "Failed to delete task"
         });
     }
 }

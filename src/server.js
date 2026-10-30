@@ -1,4 +1,4 @@
-require("dotenv").config();
+const dotenv = require("dotenv")
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -28,11 +28,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.use('/api/v1/auth', authRouter);
+app.use('/api/auth', authRouter);
 app.use('/api/tasks', taskRouter);
 app.use("/api/friends", friendRequestRoutes);
 
-const port = process.env.PORT
+const port = process.env.PORT || 5000
 
 const startServer = async () => {
     try {

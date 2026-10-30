@@ -104,22 +104,34 @@ const signIn = async (req, res) => {
         }
 
         const normalizedEmail = email.toLowerCase().trim();
-        const user = await User.findOne({ email: normalizedEmail }).select("+password");
+
+        const user = await User.findOne({
+            email: normalizedEmail
+        }).select("+password");
+
         if (!user) {
             return res.status(401).json({
                 success: false,
-                message: "Invalid email or password",
+                message: "Invalid email or password"
             });
         }
-        const isMatch = await bcrypt.compare(password, user?.password)
-        if (user && !user.password && user.authProvider === "google") {
+        if (!user.password && user.authProvider === "google") {
             return res.status(401).json({
                 success: false,
                 message: "This account uses Google Sign-In. Please continue with Google."
             });
         }
-
-        if (!user || !user.password || !isMatch) {
+        if (!user.password) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password"
+            });
+        }
+        const isMatch = await bcrypt.compare(
+            password,
+            user.password
+        );
+        if (!isMatch) {
             return res.status(401).json({
                 success: false,
                 message: "Invalid email or password"

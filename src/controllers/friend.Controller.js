@@ -1,6 +1,7 @@
 const friendRequest = require("../models/friend.Request.model");
 const User = require("../models/user.model");
 
+
 const sendFriendRequest = async (req, res) => {
     try {
         const { email } = req.body;
@@ -10,8 +11,9 @@ const sendFriendRequest = async (req, res) => {
                 message: "Recipient email is required"
             });
         }
+        const normalizedEmail = email.toLowerCase().trim();
         const recipient = await User.findOne({
-            email
+            email: normalizedEmail
         })
         if (!recipient) {
             return res.status(404).json({
@@ -38,13 +40,29 @@ const sendFriendRequest = async (req, res) => {
             ]
         })
         if (existingRequest) {
-            const message = existingRequest.status === "pending"
-                ? "A pending friend request already exists"
-                : existingRequest.status === "accepted"
-                    ? "You are already friends"
-                    : "A previous request exists. Handle it before sending another.";
-
-            return res.status(409).json({ success: false, message });
+            if (existingRequest.status === "pending") {
+                return res.status(409).json({
+                    success: false,
+                    message: "A pending friend request already exists"
+                });
+            }
+            if (existingRequest.status === "accepted") {
+                return res.status(409).json({
+                    success: false,
+                    message: "You are already friends"
+                });
+            }
+            if (existingRequest.status === "rejected") {
+                existingRequest.requester = req.user._id;
+                existingRequest.recipient = recipient._id;
+                existingRequest.status = "pending";
+                await existingRequest.save();
+                return res.status(200).json({
+                    success: true,
+                    message: "Friend request sent again",
+                    request: existingRequest
+                });
+            }
         }
 
         const friend_Request = await friendRequest.create({
@@ -158,11 +176,12 @@ const rejectFriendRequest = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: "You reject the request",
+            message: "Friend request rejected successfully",
             request
         });
 
     } catch (error) {
+        console.error("Reject friend request error:", error);
         if (error.name === "CastError") {
             return res.status(400).json({
                 success: false,
@@ -172,7 +191,7 @@ const rejectFriendRequest = async (req, res) => {
 
         return res.status(500).json({
             success: false,
-            message: "Failed to accept friend request"
+            message: "Failed to reject friend request"
         });
     }
 }
@@ -189,12 +208,15 @@ const getFriends = async (req, res) => {
             ]
         }).populate("requester", "name email").populate("recipient", "name email");
 
-        const friends = friendships.map((friendship) => {
-            if (friendship.requester._id.equals(userId)) {
-                return friendship.recipient;
-            }
-            return friendship.requester;
-        });
+        const friends = friendships.filter((friendship) =>
+                friendship.requester && friendship.recipient
+            )
+            .map((friendship) => {
+                if (friendship.requester._id.equals(userId)) {
+                    return friendship.recipient;
+                }
+                return friendship.requester;
+            });
 
         return res.status(200).json({
             success: true,
